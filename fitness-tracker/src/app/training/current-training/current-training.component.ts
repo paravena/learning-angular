@@ -8,6 +8,7 @@ import 'rxjs/add/operator/takeUntil';
 import 'rxjs/add/observable/fromEvent';
 import 'rxjs/add/observable/race';
 import { StopTrainingComponent } from './stop-training.component';
+import {TrainingService} from '../training.service';
 
 @Component({
   selector: 'app-current-training',
@@ -15,25 +16,27 @@ import { StopTrainingComponent } from './stop-training.component';
   styleUrls: ['./current-training.component.css']
 })
 export class CurrentTrainingComponent implements OnInit {
-  @Output() trainingExit = new EventEmitter<void>();
   progress = 0;
   stopPerformed = new Subject<void>();
   hundredReached = new Subject<void>();
 
-  constructor(private dialog: MatDialog) { }
+  constructor(private dialog: MatDialog,
+              private trainingService: TrainingService) { }
 
   ngOnInit() {
     this.startOrResumeProgress();
   }
 
   private startOrResumeProgress() {
+    const step = (this.trainingService.getRunningExercise().duration / 100) * 1000;
     Observable
-      .interval(1000)
+      .interval(step)
       .takeUntil(Observable.race([this.stopPerformed, this.hundredReached])).subscribe(() => {
       if (this.progress < 100) {
-        this.progress += 5;
+        this.progress += 1;
       } else {
         this.hundredReached.next();
+        this.trainingService.completeExercise();
       }
     });
   }
@@ -47,7 +50,7 @@ export class CurrentTrainingComponent implements OnInit {
     });
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.trainingExit.emit();
+        this.trainingService.cancelExercise(this.progress);
       } else {
         this.startOrResumeProgress();
       }
