@@ -34,6 +34,7 @@
       <mat-error *ngIf="birthDate.hasError('required')">Date of birth is required</mat-error>
     </mat-form-field>
     <mat-checkbox formArrayName="agree" name="agree" color="primary">Agree to Terms and Conditions.</mat-checkbox>
-    <button type="submit" mat-raised-button color="primary">Submit</button>
+    <button *ngIf="!(isLoading$ | async)" type="submit" mat-raised-button color="primary">Submit</button>
+    <mat-spinner *ngIf="isLoading$ | async"></mat-spinner>
   </form>
 </section>

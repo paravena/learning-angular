@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 import { Subject } from 'rxjs/Subject';
 import { MatDialog } from '@angular/material';
@@ -8,7 +8,11 @@ import 'rxjs/add/operator/takeUntil';
 import 'rxjs/add/observable/fromEvent';
 import 'rxjs/add/observable/race';
 import { StopTrainingComponent } from './stop-training.component';
-import {TrainingService} from '../training.service';
+import { TrainingService } from '../training.service';
+import * as fromTraining from '../training.reducer';
+import { Store } from '@ngrx/store';
+import { Exercise } from '../exercise.model';
+import 'rxjs/add/operator/mergeMap';
 
 @Component({
   selector: 'app-current-training',
@@ -21,17 +25,20 @@ export class CurrentTrainingComponent implements OnInit {
   hundredReached = new Subject<void>();
 
   constructor(private dialog: MatDialog,
-              private trainingService: TrainingService) { }
+              private trainingService: TrainingService,
+              private store: Store<fromTraining.State>) { }
 
   ngOnInit() {
     this.startOrResumeProgress();
   }
 
   private startOrResumeProgress() {
-    const step = (this.trainingService.getRunningExercise().duration / 100) * 1000;
-    Observable
-      .interval(step)
-      .takeUntil(Observable.race([this.stopPerformed, this.hundredReached])).subscribe(() => {
+    this.store.select(fromTraining.getActiveTraining).take(1).mergeMap((activeTraining: Exercise) => {
+      const step = (activeTraining.duration / 100) * 1000;
+      return Observable
+        .interval(step)
+        .takeUntil(Observable.race([this.stopPerformed, this.hundredReached]));
+    }).subscribe(() => {
       if (this.progress < 100) {
         this.progress += 1;
       } else {
